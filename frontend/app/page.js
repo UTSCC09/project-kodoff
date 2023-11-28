@@ -139,7 +139,7 @@ export default function Home() {
 
   return (
     <div className='main-body'>
-        <h1>Coding Game</h1>
+        <h1>Project Kodoff</h1>
         {errorMessage && (
         <div style={{ color: 'red' }}>
           Error: {errorMessage}
@@ -155,17 +155,17 @@ export default function Home() {
             </div>
           )}
         </div>
-        <div>
-        {game?.clients && game.clients.length > 0 && (
-          <div>
-            <div className='player-heading'>Players:</div>
-            {game.clients.map((c, index) => (
-              <div key={c.clientId}>
-                Player {index + 1}: {c.clientId}
-              </div>
-            ))}
-          </div>
-        )}
+        <div className='players-section'>
+          {game?.clients && game.clients.length > 0 && (
+            <div>
+              <div className='player-heading'>Players:</div>
+              {game.clients.map((c, index) => (
+                <div key={c.clientId}>
+                  Player {index + 1}: {c.clientId}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         {timeLeft !== null && (
           <div>

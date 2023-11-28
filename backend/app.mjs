@@ -48,6 +48,10 @@ function startTimer(gameId, durationInSeconds) {
             evaluateWinneronTimerEnd(gameId);
         }
     }, 950); // Update every second
+
+        // Store the timer reference in the timers object
+        timers[gameId] = { updateInterval };
+
 }
 
 // helpers 

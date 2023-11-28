@@ -6,6 +6,11 @@
     font-weight: bold;
 }
 
+.players-section{
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
 .game-pin-label{
     font-size: larger;
     font-weight: bold; 
