@@ -1,0 +1,4 @@
+{"desc":"Create a function named kodoff that returns the sum of two numbers","test_cases":["[1, 2]","[3, 4]","[5, 6]"],"test_results":[3,7,11],"_id":"69EDDmfQs02i5D68"}
+{"desc":"Implement a function named kodoff that reverses a string","test_cases":["\"hello\"","\"world\"","\"kodoff\""],"test_results":["olleh","dlrow","ffodok"],"_id":"Iuj68f402pWOFZ4A"}
+{"desc":"Give a function named kodoff that takes in an array of integers and returns the average","test_cases":["[1,2,3]","[3,4,5]","[4,5,9]"],"test_results":[2,4,6],"_id":"QRAoLKTJMCeoo0IP"}
+{"desc":"Write a function named kodoff to find the maximum number in an array of integers","test_cases":["[5,3,9]","[1,2,3]","[4,5,6,7]"],"test_results":[9,3,7],"_id":"SjHDYHN29UQrQk8v"}

@@ -1,18 +1,17 @@
-function send(method, url, data, callback) {
-    let xhr = new XMLHttpRequest();
-    xhr.onload = function () {
-      if (xhr.status !== 200)
-        callback("[" + xhr.status + "]" + xhr.responseText, null);
-      else callback(null, JSON.parse(xhr.responseText));
-    };
-    xhr.open(method, url, true);
-    if (!data) xhr.send();
-    else {
-      xhr.setRequestHeader("Content-Type", "application/json");
-      xhr.send(JSON.stringify(data));
-    }
-  }
-  
-  export function postPythonCode(code, callback) {
-    send("POST", "/execPython", { code }, callback);
-  }
+function send(method, url, data){
+  console.log(method, url, data)
+  return fetch(url, {
+      method: method,
+      headers: {"Content-Type": "application/json"},
+      body: (data)? JSON.stringify(data): null,
+  })
+  .then(x => x.json())
+}
+
+export function getProblem(){
+  return send("GET", "/api/problems/", null);
+};
+
+export function postPythonCode(code, problemId) {
+  return send("POST", "/execPython", {code, problemId});
+}

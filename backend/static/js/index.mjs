@@ -1,18 +1,27 @@
 import {
     postPythonCode,
+    getProblem
 } from "./api.mjs";
+
+let problem_id;
+
+function updateProblem(problem){
+  console.log(problem)
+  problem_id = problem._id
+  document.getElementById('problem').innerText = problem.desc
+}
+
+function updateResult(res){
+  console.log(res)
+  document.getElementById('output').innerText = res.result;
+}
 
 document.getElementById('run').addEventListener('click', function() {
   const code = document.getElementById('code').value;
-  postPythonCode(code, function (err, data) {
-    if (err) {
-      console.error('Error:', err);
-      document.getElementById('output').innerText = err;
-    } else {
-      document.getElementById('output').innerText = data.output || '';
-    }
-  });
+  postPythonCode(code, problem_id).then(updateResult);
 });
+
+getProblem().then(updateProblem);
 
 // Event listener for handling Tab key in the textarea
 document.getElementById('code').addEventListener('keydown', function(e) {

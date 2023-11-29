@@ -27,93 +27,137 @@ function sanitizePythonCode(scriptContent) {
     return scriptContent; 
 }
 
-export const execPythonScript = function(scriptContent, callback) {
-    try {
-        const sanitizedScriptContent = sanitizePythonCode(scriptContent);
-        const tempPyDir = path.join(__dirname, 'tempPy');
-        if (!fs.existsSync(tempPyDir)) {
-            fs.mkdirSync(tempPyDir, { recursive: true });
-        }
-
-        const tempFilePath = path.join(tempPyDir, `script_${Date.now()}.py`);
-        fs.writeFileSync(tempFilePath, sanitizedScriptContent);
-
-        const containerName = `python_exec_${Date.now()}`;
-        const dockerArgs = [
-            'run', '--rm', '--name', containerName,
-            '--memory=100m', '--cpus=0.5',
-            '--network', 'none', '--security-opt=no-new-privileges',
-            '--tmpfs', '/run:rw,noexec,nosuid,size=65536k',
-            '-v', `"${tempFilePath}:/usr/src/app/script.py"`,
-            'python-exec-env', 'python', '/usr/src/app/script.py'
-        ];
-
-        /*
-        Security measures flags:
-
-        --rm : removes the container when it exists to prevent unintentional container left running
-        --memory=100m : limits max amount of usable memory by contaiiner to 100mb
-        --cpus=0.5s : limits usable cpu by container to 0.5
-        --network none: disables network usage for contaiiner
-        --security-opt=no-new-privileges: ensures container privileges is not increased over time
-        --tmpfs', '/run:rw,noexec,nosuid,size=65536k:
-            rw: read write access within the scope of the temporary file system's /run directory inside of the container
-            noexec: execution of binaries from the temporary file system is disallowed
-            nosuid: set-user-ID and set-group-ID bits are ignores
-            size=65536k: limits the overall size of the temporary file system to 65536 kilobytes
-        */
-
-        const command = `docker ${dockerArgs.join(' ')}`;
-        let output = '';
-        let errorOutput = '';
-
-        const process = exec(command);
-        process.stdout.on('data', (data) => {
-            output += data;
-        });
-    
-        process.stderr.on('data', (data) => {
-            errorOutput += data;
-        });
-
-        process.on('exit', function(code, signal) {
-            clearTimeout(timeout);
-            if (fs.existsSync(tempFilePath)) {
-                fs.unlinkSync(tempFilePath);
-            }
-
-            if (process.killedByTimeout) {
-                return callback(new Error('Script execution timed out.'), null, null);
-            }
-
-            if (code !== 0) {
-                const error = new Error(`Script exited with code ${code}`);
-                return callback(error, output, errorOutput);
-            }
-        
-            if (signal) {
-                const signalError = new Error(`Script was terminated by signal ${signal}`);
-                return callback(signalError, output, errorOutput);
-            }
-        
-            return callback(null, output, errorOutput);
-        });
-
-        process.on('error', function(error) {
-            clearTimeout(timeout);
-            if (fs.existsSync(tempFilePath)) {
-                fs.unlinkSync(tempFilePath);
-            }
-            return callback(err, null, null);
-        });
-
-        const timeout = setTimeout(() => {
-            console.error(`Terminating Docker container ${containerName} due to timeout.`);
-            exec(`docker kill ${containerName}`);
-            process.killedByTimeout = true;
-        }, 10000);  // 10 seconds timeout
-
-    } catch (error) {
-        return callback(error, null, null);
+function extractErrMsg(err) {
+    const lines = err.split('\n');
+    if (lines.length < 2) {
+        return '';
     }
+    return lines[lines.length - 2];
+}
+
+function generateRandomString(length){
+    return Math.random().toString(36).substring(2, 2+length);
+};
+
+function constructPythonScript(userFunction, testCases, testResults, randomSeed) {
+    // Start with the user's function
+    let script = userFunction + "\n\n";
+
+    // Add a function to run test cases
+    script += `def run_test_cases():
+    passed = 0
+    failed = 0
+    test_cases = ${JSON.stringify(testCases)}
+    expected_results = ${JSON.stringify(testResults)}
+    for i, test_case in enumerate(test_cases):
+        result = kodoff(eval(test_case))
+        if str(result) == (expected_results[i]):
+            passed += 1
+        else:
+            failed += 1
+    return passed, failed\n\n`;
+
+    // Add the logic to call run_test_cases and print the results
+    script += `passed, failed = run_test_cases()
+print(f"` + randomSeed + `&` + `{passed}` + `&` + `{failed}` + `&` + `{passed} test cases passed, {failed} test cases failed")\n`;
+
+    return script;
+}
+
+function extractLineWithSeed(output, randomSeed) {
+    const lines = output.split('\n');
+    for (let line of lines) {
+        if (line.includes(randomSeed)) {
+            return line.split('&');
+        }
+    }
+    throw new Error('Test Cases fail to be executed.');
+}
+
+export function execPythonScript(scriptContent, tests) {
+    return new Promise((resolve, reject) => {
+        try {
+            console.log(tests);
+            const randomSeed = generateRandomString(10); // To prevent users from faking results
+            const userFunction = sanitizePythonCode(scriptContent);
+            const sanitizedScriptContent = constructPythonScript(userFunction, tests.test_cases, tests.test_results, randomSeed)
+            const tempPyDir = path.join(__dirname, 'tempPy');
+            if (!fs.existsSync(tempPyDir)) {
+                fs.mkdirSync(tempPyDir, { recursive: true });
+            }
+
+            const tempFilePath = path.join(tempPyDir, `script_${Date.now()}.py`);
+            fs.writeFileSync(tempFilePath, sanitizedScriptContent);
+
+            const containerName = `python_exec_${Date.now()}`;
+            const dockerArgs = [
+                'run', '--rm', '--name', containerName,
+                '--memory=100m', '--cpus=0.5',
+                '--network', 'none', '--security-opt=no-new-privileges',
+                '--tmpfs', '/run:rw,noexec,nosuid,size=65536k',
+                '-v', `"${tempFilePath}:/usr/src/app/script.py"`,
+                'python-exec-env', 'python', '/usr/src/app/script.py'
+            ];
+    
+            const command = `docker ${dockerArgs.join(' ')}`;
+            const process = exec(command);
+
+            let output = '';
+            let errorOutput = '';
+
+            process.stdout.on('data', (data) => {
+                output += data;
+            });
+            process.stderr.on('data', (data) => {
+                errorOutput += data;
+            });
+
+            process.on('exit', function(code, signal) {
+                clearTimeout(timeout);
+                if (fs.existsSync(tempFilePath)) {
+                    //fs.unlinkSync(tempFilePath);
+                }
+
+                if (process.killedByTimeout) {
+                    return reject(new Error('Script execution timed out.'));
+                }
+
+                if (code !== 0) {
+                    let errmsg = extractErrMsg(errorOutput)
+                    return reject(new Error(`Script exited with code ${code}: \n` + errmsg));
+                }
+
+                if (signal) {
+                    let errmsg = extractErrMsg(errorOutput)
+                    return reject(new Error(`Script was terminated by signal ${signal}: \n` + errmsg));
+                }
+                
+                const result = extractLineWithSeed(output, randomSeed);
+
+                if((parseInt(result[2], 10) == 0) && (parseInt(result[1], 10) > 0)){
+                    return resolve({ status: true, output: result[3] });
+                }
+                else{
+                    return resolve({ status: false, output: result[3] });
+                }
+            });
+
+            process.on('error', function(error) {
+                clearTimeout(timeout);
+                if (fs.existsSync(tempFilePath)) {
+                    //fs.unlinkSync(tempFilePath);
+                }
+                return reject(error);
+            });
+
+            const timeout = setTimeout(() => {
+                console.error(`Terminating Docker container ${containerName} due to timeout.`);
+                exec(`docker kill ${containerName}`);
+                process.killedByTimeout = true;
+            }, 12000);  // 12 seconds timeout
+
+        } catch (error) {
+            reject(error);
+        }
+    });
 };
