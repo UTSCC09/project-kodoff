@@ -51,7 +51,7 @@ function constructPythonScript(userFunction, testCases, testResults, randomSeed)
     expected_results = ${JSON.stringify(testResults)}
     for i, test_case in enumerate(test_cases):
         result = kodoff(eval(test_case))
-        if str(result) == (expected_results[i]):
+        if (result == (expected_results[i]) or result == (eval(expected_results[i]))):
             passed += 1
         else:
             failed += 1
@@ -124,12 +124,12 @@ export function execPythonScript(scriptContent, tests) {
 
                 if (code !== 0) {
                     let errmsg = extractErrMsg(errorOutput)
-                    return reject(new Error(`Script exited with code ${code}: \n` + errmsg));
+                    return reject(new Error(`Script exited with code ${code} \n` + errmsg));
                 }
 
                 if (signal) {
                     let errmsg = extractErrMsg(errorOutput)
-                    return reject(new Error(`Script was terminated by signal ${signal}: \n` + errmsg));
+                    return reject(new Error(`Script was terminated by signal ${signal} \n` + errmsg));
                 }
                 
                 const result = extractLineWithSeed(output, randomSeed);

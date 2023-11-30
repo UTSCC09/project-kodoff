@@ -6,7 +6,6 @@ import {
 let problem_id;
 
 function updateProblem(problem){
-  console.log(problem)
   problem_id = problem._id
   document.getElementById('problem').innerText = problem.desc
 }
