@@ -32,15 +32,15 @@ export function updateRanks(player1Rank, player2Rank, player1Solve, player2Solve
     // Update Ranks
     if(player1Solve > player2Solve){
         newPlayer1Rank = Math.max(player1Rank + player1K * (player1Actual - player1Expected), player1Rank);
-        newPlayer2Rank = player2Rank + player2K * (player2Actual - player2Expected);
+        newPlayer2Rank = Math.max(player2Rank + player2K * (player2Actual - player2Expected), 0);
     }
     else if (player2Solve > player1Solve){
-        newPlayer1Rank = player1Rank + player1K * (player1Actual - player1Expected);
+        newPlayer1Rank = Math.max(player1Rank + player1K * (player1Actual - player1Expected), 0);
         newPlayer2Rank = Math.max(player2Rank + player2K * (player2Actual - player2Expected), player2Rank);
     }
     else{
-        newPlayer1Rank = player1Rank + player1K * (player1Actual - player1Expected);
-        newPlayer2Rank = player2Rank + player2K * (player2Actual - player2Expected);
+        newPlayer1Rank = Math.max(player1Rank + player1K * (player1Actual - player1Expected), 0);
+        newPlayer2Rank = Math.max(player2Rank + player2K * (player2Actual - player2Expected), 0);
     }
 
     return {
