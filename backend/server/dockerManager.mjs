@@ -71,7 +71,7 @@ function extractLineWithSeed(output, randomSeed) {
             return line.split('&');
         }
     }
-    throw new Error('Test Cases fail to be executed.');
+    throw new Error('Test cases for function kodoff fail to be executed.');
 }
 
 export function execPythonScript(scriptContent, tests) {
@@ -115,21 +115,21 @@ export function execPythonScript(scriptContent, tests) {
             process.on('exit', function(code, signal) {
                 clearTimeout(timeout);
                 if (fs.existsSync(tempFilePath)) {
-                    //fs.unlinkSync(tempFilePath);
+                    fs.unlinkSync(tempFilePath);
                 }
 
                 if (process.killedByTimeout) {
-                    return reject(new Error('Script execution timed out.'));
+                    return resolve({ status: false, output: 'Script execution timed out.' });
                 }
 
                 if (code !== 0) {
                     let errmsg = extractErrMsg(errorOutput)
-                    return reject(new Error(`Script exited with code ${code} \n` + errmsg));
+                    return resolve({ status: false, output: `Script exited with code ${code} \n` + errmsg });
                 }
 
                 if (signal) {
                     let errmsg = extractErrMsg(errorOutput)
-                    return reject(new Error(`Script was terminated by signal ${signal} \n` + errmsg));
+                    return resolve({ status: false, output: `Script was terminated by signal ${signal} \n` + errmsg });
                 }
                 
                 const result = extractLineWithSeed(output, randomSeed);
@@ -145,9 +145,9 @@ export function execPythonScript(scriptContent, tests) {
             process.on('error', function(error) {
                 clearTimeout(timeout);
                 if (fs.existsSync(tempFilePath)) {
-                    //fs.unlinkSync(tempFilePath);
+                    fs.unlinkSync(tempFilePath);
                 }
-                return reject(error);
+                return resolve({ status: false, output: error.message });
             });
 
             const timeout = setTimeout(() => {
@@ -157,7 +157,7 @@ export function execPythonScript(scriptContent, tests) {
             }, 12000);  // 12 seconds timeout
 
         } catch (error) {
-            reject(error);
+            return resolve({ status: false, output: error.message });
         }
     });
 };

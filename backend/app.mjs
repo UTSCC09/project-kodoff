@@ -47,13 +47,9 @@ app.get("/api/problems/", async function(req, res, next){
 })
 
 app.post('/execPython', async function(req, res, next) {
-  try {
-      const tests = await getProblemTestsById(req.body.problemId)
-      const result = await execPythonScript(req.body.code, tests);
-      res.json({ success: result.status , result: result.output });
-  } catch (error) {
-      res.status(200).json({ success: false, result: error.message });
-  }
+  const tests = await getProblemTestsById(req.body.problemId)
+  const result = await execPythonScript(req.body.code, tests);
+  res.json({ success: result.status , result: result.output });
 });
 
 
